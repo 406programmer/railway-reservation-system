@@ -5,6 +5,7 @@ import com.railway.trainservice.entity.enums.TrainType;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -12,9 +13,9 @@ import java.util.List;
 @Table(name = "trains")
 @Getter
 @Setter
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
 public class Train {
 
     @Id
@@ -40,6 +41,18 @@ public class Train {
 
     @Column(name = "distance_km", nullable = false)
     private Integer distanceKm;
+
+    @Column(name = "is_active", nullable = false)
+    @Builder.Default
+    private boolean isActive = true;
+
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private LocalDateTime createdAt;
+
+    @PrePersist
+    protected void onCreate() {
+        this.createdAt = LocalDateTime.now();
+    }
 
     @OneToMany(mappedBy = "train", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonIgnore

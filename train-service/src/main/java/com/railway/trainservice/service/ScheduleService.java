@@ -3,6 +3,7 @@ package com.railway.trainservice.service;
 import com.railway.trainservice.dto.*;
 import com.railway.trainservice.entity.*;
 import com.railway.trainservice.entity.enums.CoachType;
+import com.railway.trainservice.entity.enums.ScheduleStatus;
 import com.railway.trainservice.entity.enums.SeatStatus;
 import com.railway.trainservice.exception.InvalidOperationException;
 import com.railway.trainservice.exception.ResourceNotFoundException;
@@ -104,6 +105,48 @@ public class ScheduleService {
         TrainSchedule updated = scheduleRepository.save(schedule);
         log.info("Updated schedule id {}: status={}, delay={}m", scheduleId, updated.getStatus(), updated.getDelayMinutes());
         return ScheduleResponse.from(updated);
+    }
+
+    @Transactional
+    public ScheduleResponse cancelSchedule(Long scheduleId) {
+        TrainSchedule schedule = scheduleRepository.findById(scheduleId)
+                .orElseThrow(() -> new ResourceNotFoundException("Schedule", "id", scheduleId));
+
+        if (schedule.getStatus() == ScheduleStatus.CANCELLED) {
+            throw new InvalidOperationException("Schedule " + scheduleId + " is already cancelled");
+        }
+        if (schedule.getStatus() == ScheduleStatus.COMPLETED) {
+            throw new InvalidOperationException("Cannot cancel a completed schedule");
+        }
+
+        schedule.setStatus(ScheduleStatus.CANCELLED);
+        TrainSchedule cancelled = scheduleRepository.save(schedule);
+        log.info("Cancelled schedule id: {}", scheduleId);
+        return ScheduleResponse.from(cancelled);
+    }
+
+    @Transactional(readOnly = true)
+    public ClassAvailabilityResponse getClassAvailability(Long scheduleId, CoachType classType) {
+        if (!scheduleRepository.existsById(scheduleId)) {
+            throw new ResourceNotFoundException("Schedule", "id", scheduleId);
+        }
+
+        List<JourneySeat> seats = journeySeatRepository
+                .findByScheduleScheduleIdAndSeatCoachCoachType(scheduleId, classType);
+
+        long total = seats.size();
+        long available = seats.stream()
+                .filter(js -> js.getStatus() == SeatStatus.AVAILABLE)
+                .count();
+
+        // Fetch fare for this class
+        TrainSchedule schedule = scheduleRepository.findById(scheduleId).orElseThrow();
+        BigDecimal fare = classFareRepository
+                .findByTrainTrainIdAndClassType(schedule.getTrain().getTrainId(), classType)
+                .map(f -> f.calculateTotalFare(schedule.getTrain().getDistanceKm()))
+                .orElse(BigDecimal.ZERO);
+
+        return new ClassAvailabilityResponse(classType, total, available, fare);
     }
 
     @Transactional(readOnly = true)

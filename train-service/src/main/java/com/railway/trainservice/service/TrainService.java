@@ -79,6 +79,41 @@ public class TrainService {
         log.info("Deleted train id: {}", trainId);
     }
 
+    @Transactional
+    public TrainResponse updateTrain(Long trainId, UpdateTrainRequest request) {
+        Train train = trainRepository.findById(trainId)
+                .orElseThrow(() -> new ResourceNotFoundException("Train", "id", trainId));
+
+        if (request.trainName() != null && !request.trainName().isBlank()) {
+            train.setTrainName(request.trainName().trim());
+        }
+        if (request.trainType() != null) {
+            train.setTrainType(request.trainType());
+        }
+        if (request.sourceStation() != null && !request.sourceStation().isBlank()) {
+            train.setSourceStation(request.sourceStation().trim().toUpperCase());
+        }
+        if (request.destinationStation() != null && !request.destinationStation().isBlank()) {
+            train.setDestinationStation(request.destinationStation().trim().toUpperCase());
+        }
+        if (request.distanceKm() != null) {
+            train.setDistanceKm(request.distanceKm());
+        }
+
+        Train updated = trainRepository.save(train);
+        log.info("Updated train id: {}", trainId);
+        return TrainResponse.from(updated);
+    }
+
+    @Transactional
+    public void deactivateTrain(Long trainId) {
+        Train train = trainRepository.findById(trainId)
+                .orElseThrow(() -> new ResourceNotFoundException("Train", "id", trainId));
+        train.setActive(false);
+        trainRepository.save(train);
+        log.info("Deactivated train id: {}", trainId);
+    }
+
     // ── Coaches & Automatic Seat Layout Generation ────────────────────────
 
     @Transactional

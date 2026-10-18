@@ -156,6 +156,18 @@ public class SeatBookingService {
     }
 
     /**
+     * Returns all seat assignments for a given reservation (used by Reservation Service).
+     */
+    @Transactional(readOnly = true)
+    public List<JourneySeatResponse> getJourneySeatsByReservation(Long reservationId) {
+        return journeySeatRepository.findByReservationId(reservationId)
+                .stream()
+                .map(JourneySeatResponse::from)
+                .toList();
+    }
+
+
+    /**
      * Periodic cleanup for expired holds.
      */
     @Transactional

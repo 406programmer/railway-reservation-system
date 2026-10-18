@@ -11,7 +11,8 @@ public record TrainResponse(
         String sourceStation,
         String destinationStation,
         Integer distanceKm,
-        int totalCoaches
+        int totalCoaches,
+        boolean isActive
 ) {
     public static TrainResponse from(Train train) {
         return new TrainResponse(
@@ -22,7 +23,8 @@ public record TrainResponse(
                 train.getSourceStation(),
                 train.getDestinationStation(),
                 train.getDistanceKm(),
-                train.getCoaches() != null ? train.getCoaches().size() : 0
+                train.getCoaches() != null ? train.getCoaches().size() : 0,
+                train.isActive()
         );
     }
 }
